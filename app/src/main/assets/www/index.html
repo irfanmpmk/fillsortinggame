@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1b1440">
+<title>Potion Sort</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- Home -->
+  <section id="home" class="screen">
+    <div class="home-inner">
+      <canvas id="logo" width="260" height="170"></canvas>
+      <h1>Potion Sort</h1>
+      <p class="tagline">Pour the potions until every tube holds one color</p>
+      <button id="btnPlay" class="big">Play</button>
+      <button id="btnLevels" class="secondary">Levels</button>
+      <div class="settings">
+        <label><input type="checkbox" id="optSound" checked> Sound</label>
+        <label><input type="checkbox" id="optSymbols"> Color symbols</label>
+      </div>
+    </div>
+  </section>
+
+  <!-- Levels -->
+  <section id="levels" class="screen hidden">
+    <header class="bar">
+      <button class="icon" id="levelsBack" aria-label="Back">&#x2190;</button>
+      <div class="title">Levels</div>
+      <span class="icon spacer"></span>
+    </header>
+    <div id="levelGrid"></div>
+  </section>
+
+  <!-- Game -->
+  <section id="game" class="screen hidden">
+    <header class="bar">
+      <button class="icon" id="gameHome" aria-label="Home">&#x2302;</button>
+      <div class="title">
+        <div id="levelLabel">Level 1</div>
+        <div id="levelInfo" class="sub"></div>
+      </div>
+      <button class="icon" id="gameRestart" aria-label="Restart">&#x21bb;</button>
+    </header>
+    <div id="boardWrap"><canvas id="board"></canvas></div>
+    <footer class="bar tools">
+      <button id="btnUndo" class="tool"><span class="ico">&#x21b6;</span><span>Undo</span><b id="undoCount">5</b></button>
+      <button id="btnTube" class="tool"><span class="ico">&#xff0b;</span><span>Tube</span><b id="tubeCount">1</b></button>
+      <button id="btnHint" class="tool"><span class="ico">&#x1f4a1;</span><span>Hint</span><b id="hintCount">3</b></button>
+    </footer>
+  </section>
+
+  <!-- Win modal -->
+  <div id="modal" class="hidden">
+    <div class="card">
+      <h2 id="modalTitle">Level Complete!</h2>
+      <div id="modalStars" class="stars"></div>
+      <p id="modalText"></p>
+      <button id="modalNext" class="big">Next Level</button>
+      <button id="modalReplay" class="secondary">Replay</button>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.irfanmpmk.potionsort'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.irfanmpmk.potionsort'
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    signingConfigs {
+        // Shared key so every build installs over the previous one.
+        // For a Play Store release, replace this with a private keystore.
+        potion {
+            storeFile file('potionsort.keystore')
+            storePassword 'potionsort'
+            keyAlias 'potionsort'
+            keyPassword 'potionsort'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.potion
+        }
+        debug {
+            signingConfig signingConfigs.potion
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
