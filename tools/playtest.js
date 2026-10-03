@@ -16,7 +16,7 @@ const { chromium } = require('playwright');
   const gen = await page.evaluate(() => {
     const P = window.__potion;
     const res = [];
-    for (let l = 1; l <= 80; l++) {
+    for (let l = 1; l <= 1000; l++) {
       const t0 = performance.now();
       const pz = P.generateLevel(l);
       res.push({ l, ms: Math.round(performance.now() - t0), par: pz.par, colors: pz.cfg.colors, cap: pz.cfg.capacity });
@@ -24,10 +24,12 @@ const { chromium } = require('playwright');
     return res;
   });
   const unsolved = gen.filter((g) => !g.par);
+  const slow = [...gen].sort((a, b) => b.ms - a.ms).slice(0, 5);
+  console.log('slowest', JSON.stringify(slow));
   console.log('max gen ms', Math.max(...gen.map((g) => g.ms)), 'unsolved', JSON.stringify(unsolved));
-  console.log(gen.filter((g) => g.l % 10 === 1).map((g) => `L${g.l}: ${g.colors}c cap${g.cap} par${g.par} ${g.ms}ms`).join('\n'));
+  console.log(gen.filter((g) => g.l % 50 === 1 || g.l === 1000).map((g) => `L${g.l}: ${g.colors}c cap${g.cap} par${g.par} ${g.ms}ms`).join('\n'));
 
-  for (const level of [1, 14, 40]) {
+  for (const level of [1, 14, 40, 200, 999]) {
     await page.evaluate(() => window.handleBack && window.handleBack());
     await page.evaluate((l) => {
       document.getElementById('btnPlay').click();

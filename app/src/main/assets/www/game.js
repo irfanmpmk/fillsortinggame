@@ -27,8 +27,6 @@
   const SYMBOLS = ['●', '▲', '■', '◆', '★', '✚', '♥', '♠',
     '♣', '☀', '☾', '✿', '✦', '✖'];
 
-  const UNDO_PER_LEVEL = 5;
-  const HINTS_PER_LEVEL = 3;
   const TUBES_PER_LEVEL = 1;
 
   const STORE = 'potionsort.';
@@ -61,22 +59,32 @@
   // Difficulty curve
   // ---------------------------------------------------------------------------
 
+  const MAX_LEVEL = 1000;
+
   function levelConfig(level) {
     // One more color every 3 levels, from 3 colors up to 14.
     const colors = Math.min(COLORS.length, 3 + Math.floor((level - 1) / 3));
     // Taller tubes later on mean longer, more tangled stacks.
-    const capacity = level >= 25 ? 5 : 4;
+    const capacity = level >= 150 ? 6 : level >= 25 ? 5 : 4;
     // "Mystery" layers: everything below the top may be hidden until uncovered.
-    const hidden = level >= 12 ? Math.min(0.8, 0.3 + (level - 12) * 0.02) : 0;
-    return { colors, capacity, empty: 2, hidden };
+    const hidden = level >= 12 ? Math.min(0.85, 0.3 + (level - 12) * 0.01) : 0;
+    // From level 40, a few solvable puzzles are generated and the one with the
+    // longest solution is kept.
+    const pick = level < 40 ? 1 : level < 300 ? 2 : 3;
+    // Late levels give fewer helpers.
+    const undos = level < 300 ? 5 : level < 600 ? 4 : 3;
+    const hints = level < 300 ? 3 : level < 600 ? 2 : 1;
+    return { colors, capacity, empty: 2, hidden, pick, undos, hints };
   }
 
   function difficultyName(level) {
     if (level <= 6) return 'Easy';
     if (level <= 15) return 'Medium';
     if (level <= 30) return 'Hard';
-    if (level <= 50) return 'Expert';
-    return 'Master';
+    if (level <= 60) return 'Expert';
+    if (level <= 150) return 'Master';
+    if (level <= 400) return 'Grandmaster';
+    return 'Legend';
   }
 
   // ---------------------------------------------------------------------------
@@ -198,7 +206,9 @@
   function generateLevel(level) {
     const cfg = levelConfig(level);
     let fallback = null;
-    for (let attempt = 0; attempt < 40; attempt++) {
+    let best = null;
+    let found = 0;
+    for (let attempt = 0; attempt < 60 && found < cfg.pick; attempt++) {
       const rng = mulberry32(level * 100003 + attempt * 7919 + 17);
       const pool = [];
       for (let c = 0; c < cfg.colors; c++) {
@@ -217,12 +227,16 @@
       for (let e = 0; e < cfg.empty; e++) tubes.push([]);
 
       const hidden = tubes.map((t) => t.map((_, i) => i < t.length - 1 && rng() < cfg.hidden));
-      const solution = solve(tubes, cfg.capacity, 40000);
+      const solution = solve(tubes, cfg.capacity, found ? 15000 : 40000);
       const candidate = { level, cfg, tubes, hidden, par: solution ? solution.length : 0 };
-      if (solution) return candidate;
-      if (!fallback) fallback = candidate;
+      if (solution) {
+        found++;
+        if (!best || candidate.par > best.par) best = candidate;
+      } else if (!fallback) {
+        fallback = candidate;
+      }
     }
-    return fallback;
+    return best || fallback;
   }
 
   // ---------------------------------------------------------------------------
@@ -271,8 +285,8 @@
     cap: 4,
     history: [],
     moves: 0,
-    undos: UNDO_PER_LEVEL,
-    hints: HINTS_PER_LEVEL,
+    undos: 0,
+    hints: 0,
     extraTubes: TUBES_PER_LEVEL,
     selected: -1,
     won: false,
@@ -280,14 +294,14 @@
 
   function startLevel(level) {
     state.level = level;
-    state.puzzle = generateLevel(level);
+    state.puzzle = cachedLevel(level);
     state.cap = state.puzzle.cfg.capacity;
     state.tubes = state.puzzle.tubes.map((t) => t.slice());
     state.hidden = state.puzzle.hidden.map((h) => h.slice());
     state.history = [];
     state.moves = 0;
-    state.undos = UNDO_PER_LEVEL;
-    state.hints = HINTS_PER_LEVEL;
+    state.undos = state.puzzle.cfg.undos;
+    state.hints = state.puzzle.cfg.hints;
     state.extraTubes = TUBES_PER_LEVEL;
     state.selected = -1;
     state.won = false;
@@ -298,6 +312,12 @@
     layoutBoard();
     updateHud();
     requestDraw();
+  }
+
+  const levelCache = new Map();
+  function cachedLevel(level) {
+    if (!levelCache.has(level)) levelCache.set(level, generateLevel(level));
+    return levelCache.get(level);
   }
 
   function snapshot() {
@@ -430,10 +450,17 @@
     }
   }
 
+  // Stars depend only on the number of moves (undone moves don't count).
+  // 3 stars: at most the solver's move count; 2 stars: up to 40% more.
+  function starTargets() {
+    const par = state.puzzle.par || 1;
+    return { three: par, two: Math.ceil(par * 1.4) };
+  }
+
   function starsFor() {
-    const par = state.puzzle.par || state.moves;
-    if (state.moves <= par) return 3;
-    if (state.moves <= Math.ceil(par * 1.4)) return 2;
+    const t = starTargets();
+    if (state.moves <= t.three) return 3;
+    if (state.moves <= t.two) return 2;
     return 1;
   }
 
@@ -442,14 +469,21 @@
     const stars = starsFor();
     const key = String(state.level);
     if (!progress.stars[key] || progress.stars[key] < stars) progress.stars[key] = stars;
-    if (progress.unlocked < state.level + 1) progress.unlocked = state.level + 1;
+    const next = Math.min(MAX_LEVEL, state.level + 1);
+    if (progress.unlocked < next) progress.unlocked = next;
     save('stars', progress.stars);
     save('unlocked', progress.unlocked);
     confetti();
+    // Prepare the next puzzle while the celebration plays.
+    if (state.level < MAX_LEVEL) setTimeout(() => cachedLevel(state.level + 1), 120);
     setTimeout(() => {
-      $('modalTitle').textContent = 'Level ' + state.level + ' Complete!';
+      const t = starTargets();
+      const last = state.level >= MAX_LEVEL;
+      $('modalTitle').textContent = last ? 'All ' + MAX_LEVEL + ' levels done!' : 'Level ' + state.level + ' Complete!';
       $('modalStars').innerHTML = [1, 2, 3].map((s) => '<span class="' + (s <= stars ? 'on' : '') + '">★</span>').join('');
-      $('modalText').textContent = 'Solved in ' + state.moves + ' moves';
+      $('modalText').innerHTML = 'Solved in <b>' + state.moves + '</b> moves<br><small>★★★ ≤ ' + t.three +
+        ' moves • ★★ ≤ ' + t.two + ' moves</small>';
+      show('modalNext', !last);
       show('modal', true);
     }, 900);
   }
@@ -879,13 +913,19 @@
     show('modal', false);
     if (screen === 'game') resizeCanvas();
     if (screen === 'levels') buildLevelGrid();
-    if (screen === 'home') $('btnPlay').textContent = 'Play  •  Level ' + progress.unlocked;
+    if (screen === 'home') $('btnPlay').textContent = 'Play  •  Level ' + progress.unlocked + ' / ' + MAX_LEVEL;
   }
 
   function updateHud() {
     const cfg = state.puzzle.cfg;
     $('levelLabel').textContent = 'Level ' + state.level;
-    $('levelInfo').textContent = difficultyName(state.level) + ' • ' + cfg.colors + ' colors • Moves ' + state.moves;
+    $('levelInfo').textContent = difficultyName(state.level) + ' • ' + cfg.colors + ' colors';
+    // Live star meter: current stars and the move limit to keep them.
+    const t = starTargets();
+    const stars = starsFor();
+    const limit = stars === 3 ? t.three : stars === 2 ? t.two : null;
+    $('starMeter').innerHTML = [1, 2, 3].map((s) => '<span class="' + (s <= stars ? 'on' : '') + '">★</span>').join('');
+    $('moveCount').textContent = 'Moves ' + state.moves + (limit ? ' / ' + limit : '');
     $('undoCount').textContent = state.undos;
     $('hintCount').textContent = state.hints;
     $('tubeCount').textContent = state.extraTubes;
@@ -897,8 +937,7 @@
   function buildLevelGrid() {
     const grid = $('levelGrid');
     grid.innerHTML = '';
-    const total = Math.max(60, Math.ceil((progress.unlocked + 10) / 10) * 10);
-    for (let l = 1; l <= total; l++) {
+    for (let l = 1; l <= MAX_LEVEL; l++) {
       const b = document.createElement('button');
       const stars = progress.stars[String(l)] || 0;
       b.innerHTML = l + '<small>' + (stars ? '★'.repeat(stars) : '&nbsp;') + '</small>';
@@ -944,7 +983,7 @@
   $('btnUndo').addEventListener('click', undo);
   $('btnTube').addEventListener('click', addTube);
   $('btnHint').addEventListener('click', hint);
-  $('modalNext').addEventListener('click', () => { show('modal', false); startLevel(state.level + 1); });
+  $('modalNext').addEventListener('click', () => { show('modal', false); startLevel(Math.min(MAX_LEVEL, state.level + 1)); });
   $('modalReplay').addEventListener('click', () => { show('modal', false); startLevel(state.level); });
 
   $('optSound').checked = progress.sound;

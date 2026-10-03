@@ -15,20 +15,25 @@ Open that page on your phone, download the APK and install it
 
 ## Gameplay
 
-- 14 potion colors, endless levels; every level is generated from its number and checked by a solver, so it is always solvable.
+- **1000 levels**, 14 potion colors. Every level is generated from its number and checked by a solver, so it is always solvable.
 - Difficulty ramps up as you progress:
 
-  | Levels | Colors | Tube height | Mystery layers |
-  |-------:|-------:|------------:|---------------:|
-  | 1–3    | 3      | 4           | –              |
-  | 4–11   | 4–6    | 4           | –              |
-  | 12–24  | 6–10   | 4           | 30% → 54% hidden (`?`) |
-  | 25–34  | 11–14  | 5           | up to 80% hidden |
-  | 35+    | 14     | 5           | 80% hidden     |
+  | Levels   | Colors  | Tube height | Hidden (`?`) layers | Undo / Hint |
+  |---------:|--------:|------------:|--------------------:|------------:|
+  | 1–11     | 3–6     | 4           | –                   | 5 / 3       |
+  | 12–24    | 6–10    | 4           | 30% → 42%           | 5 / 3       |
+  | 25–149   | 10–14   | 5           | 43% → 85%           | 5 / 3       |
+  | 150–299  | 14      | 6           | 85%                 | 5 / 3       |
+  | 300–599  | 14      | 6           | 85%                 | 4 / 2       |
+  | 600–1000 | 14      | 6           | 85%                 | 3 / 1       |
 
+  From level 40 the game also generates a few puzzles and keeps the one with the longest solution.
   Hidden layers show `?` until they reach the top of their tube.
-- Per level: 5 **Undo**, 1 extra **Tube**, 3 **Hints** (the solver shows the next good move).
-- Stars for finishing in few moves, level select, progress saved on the device.
+- Per level: Undo, Hint (the solver shows the next good move) and 1 extra **Tube**.
+- **Stars are based on moves.** Each level has a target move count (the solver's solution length):
+  ★★★ at or under the target, ★★ up to 40% over it, ★ otherwise. The bar under the level name shows
+  your current stars and `Moves N / limit` — the limit to keep those stars. Undone moves don't count.
+- Level select, progress saved on the device.
 - Settings: sound on/off, color-blind **symbols** on each color.
 
 ## Project layout
@@ -36,7 +41,7 @@ Open that page on your phone, download the APK and install it
 - `app/src/main/assets/www/` – the game itself (HTML5 canvas + JavaScript). Open `index.html` in a browser to play on a computer.
 - `app/src/main/java/.../MainActivity.java` – full-screen WebView wrapper.
 - `.github/workflows/build-apk.yml` – builds the APK and publishes the release.
-- `tools/playtest.js` – automated test: checks levels 1–80 are solvable and auto-plays some levels (`node tools/playtest.js` with Playwright installed).
+- `tools/playtest.js` – automated test: checks all 1000 levels are solvable and auto-plays some levels (`node tools/playtest.js` with Playwright installed).
 - `tools/make-icons.js` – regenerates the launcher icons.
 
 ## Building locally

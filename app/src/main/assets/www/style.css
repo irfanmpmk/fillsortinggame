@@ -88,7 +88,8 @@ h1 {
   color: transparent;
 }
 
-.tagline { color: var(--muted); margin: 0 0 22px; }
+.tagline { color: var(--muted); margin: 0 0 6px; }
+.howstars { color: var(--accent); font-size: 13px; margin: 0 0 22px; }
 
 .settings {
   margin-top: 18px;
@@ -237,3 +238,19 @@ button.tool:disabled { opacity: 0.4; }
   z-index: 20;
   pointer-events: none;
 }
+
+/* Live move / star meter */
+.bar .moves {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 13px;
+  font-weight: 600;
+}
+.mini-stars { color: #5b4f99; letter-spacing: 1px; font-size: 14px; }
+.mini-stars .on { color: var(--accent); }
+#modal p small { font-size: 13px; color: var(--accent); }
